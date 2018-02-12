@@ -1,0 +1,20 @@
+Package: typer
+Title: Type Annotations and Checks
+Description: Dynamic typechecking in R.
+Authors@R: c(
+    person("Martin", "Binder", email = "martin.binder@mail.com", role = c("aut", "cre")))
+URL: https://github.com/mb706/typer
+BugReports: https://github.com/mb706/typer
+License: AGPL-3
+Encoding: UTF-8
+Roxygen: list(wrap = FALSE, markdown = TRUE)
+LazyData: yes
+ByteCompile: yes
+Version: 0.0.1
+RoxygenNote: 6.0.1
+VignetteBuilder: knitr
+Depends:
+    data.table
+Suggests:
+    testthat,
+    knitr

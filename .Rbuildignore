@@ -1,0 +1,6 @@
+^development$
+^\.git$
+^\.gitignore$
+^\.travis.yml$
+^man-roxygen$
+^\.gitattributes$
