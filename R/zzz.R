@@ -1,5 +1,23 @@
 
-#' The Package is Loaded
+#' @import BBmisc
+#' @import data.table
+
+#' @title The Package is Loaded
 #'
 #' @export
 harbinger = TRUE
+
+#' Test Function
+#'
+#' This is the identity function.
+#'
+#' @param x \[`any`]\cr
+#'   Anything, really.
+#' @param y \[\code{\link{harbinger}}]\cr
+#'   Ignored.
+#' @return \[`any`] The `x` input.
+#' @export
+test = function(x, y) {
+  x
+}
+

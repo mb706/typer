@@ -11,10 +11,11 @@ Roxygen: list(wrap = FALSE, markdown = TRUE)
 LazyData: yes
 ByteCompile: yes
 Version: 0.0.1
-RoxygenNote: 6.0.1
+RoxygenNote: 6.0.1.9000
 VignetteBuilder: knitr
 Depends:
-    data.table
+    data.table,
+    BBmisc
 Suggests:
     testthat,
     knitr
