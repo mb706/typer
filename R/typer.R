@@ -150,12 +150,20 @@ alldeparse = function(expr) {
   collapse(deparse(expr), sep = "\n")
 }
 
-# Remove the type decorators of a function and add the type checks in the body
-# @param fun [function] the function to change
-# @param name [character(1)] name of the function to use in error messages
-# @return [function] the function with removed type decorators and added type
-#   checks.
-compileFunction = function(fun, name) {
+#' Remove the type decorators of a function and add the type checks in the body
+#'
+#' See [`compileTypes()`] for details on decorators. This is mostly used
+#' internally, but can also be used to explicitly implement type checking for
+#' a given function.
+#'
+#' @param fun \[`function`]\cr
+#'   The function to compile.
+#' @param name \[`character(1)`]\cr
+#'   Name of the function to use in error messages.
+#' @return \[`function`] The function with removed type decorators and added
+#'   type checks.
+#' @export
+compileFunction = function(fun, name = "[function]") {
 
   insert = quote({})
   originsert = insert
@@ -216,7 +224,7 @@ Possibly use parentheses.",
       # does not work.
       formals(fun)[[idx]] = substitute()
     } else {
-      formals(fun)[[idx]] = curformal
+      formals(fun)[idx] = list(curformal)
     }
     if (!length(conditions)) {
       # no type decorators

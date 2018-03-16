@@ -8,6 +8,8 @@ test_that("compileFunction formals are as expected", {
 
   expect_identical(formals(compileFunction(x, "x")), formals(function(a, b = "test", c = 2){}))
 
+  expect_identical(formals(compileFunction(function(a = NULL: NULL | integer) a, "x")), formals(function(a = NULL) a))
+
   expect_error(compileFunction(function(a = 1 + 2:numeric) { }, "x"), "Colon used inside default value is not at outermost level")
 
   expect_equal(compileFunction(function(x) x, "x"), function(x) x)
