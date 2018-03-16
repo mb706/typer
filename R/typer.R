@@ -1,7 +1,16 @@
 #' @import BBmisc
 #' @import checkmate
+NULL
 
-#' @title Convert Argument Annotations to Argument Checks
+#' Convert Argument Annotations to Argument Checks
+#'
+#' `compileTypes` uses function annotations of functions in the given
+#' environment and adds them to the functions as type checks. This way, if
+#' a function is called, it automatically checks the input value format. With
+#' its default values, `compileTypes` works on all functions in the calling
+#' environment. This way, if `compileTypes()` is called at the end of a package
+#' (e.g. in a file named `zzz.R` in the `R` directory), it converts all
+#' functions in that package.
 #'
 #' A function annotation for a parameter has the form
 #' ```
@@ -32,7 +41,7 @@
 #' Similarly to non list length indicators, a minimum and maximum
 #' can also be given (`[n, m]`), any of which can be omitted.
 #'
-#' Conditions for each type can be added in `[[` `]]` and separated
+#' Conditions for each type can be added in \code{[[} \code{]]} and separated
 #' by `,`. Special conditions are `named`, `unique`, `uniquely.named`,
 #' which apply to lists (and, in case of nested lists, only apply to
 #' the outermost list);
@@ -42,6 +51,10 @@
 #'
 #' A special value of the `value` part is `.`(dot), which indicates that no
 #' default value is given for the function: `param = . : numeric`.
+#'
+#' @note The generated code calls functions from the `checkmate` package.
+#' Therefore, a package using `compileTypes`, should have `checkmate` in the
+#' `Imports` section of its `DESCRIPTION` file.
 #'
 #' @param env The environment to parse. Defaults to [parent.frame()].
 #' @param ... `include` or `exclude`, given as `character(1)` [grep()] patterns.
