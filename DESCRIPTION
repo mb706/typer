@@ -16,6 +16,8 @@ VignetteBuilder: knitr
 Depends:
     data.table,
     BBmisc
+Imports:
+    checkmate
 Suggests:
     testthat,
     knitr

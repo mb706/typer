@@ -1,6 +1,7 @@
 
 
 
+
 #' Convert Argument Annotations to Argument Checks
 #'
 #' A function annotation for a parameter has the form
@@ -17,9 +18,6 @@
 #'
 #' The special class name `NULL` allows `NULL` values.
 #'
-#' A special `value` is `.`(dot), which indicates that no default
-#' value is given for the function.
-#'
 #' Non-list mode class names can be suffixed with `(n)`,
 #' where `n` is an integer indicating the required vector length.
 #' Further possibilities are `(n, m)` to indicate length between
@@ -28,7 +26,7 @@
 #'
 #' The `(n)` suffix also works for `value(...)`: `value(1, 2)(1)`
 #' specifies that a value can be `1` or `2`. Note that `value(1, 2)`
-#' also allows `c(1, 2)` and `c(1, 1)`.
+#' also allows `c(1, 2)` and `c(1, 1, 2, 1)`.
 #'
 #' Class names or value lists can be suffixed with `[]` to
 #' indicate "list of", or `[n]` to indicate "length `n` list of".
@@ -43,12 +41,21 @@
 #' context of the given parameters as well as the function's environment
 #' (and should probably involve the value at hand.
 #'
+#' A special value of the `value` part is `.`(dot), which indicates that no
+#' default value is given for the function: `param = . : numeric`.
 #'
 #' @param env The environment to parse. Defaults to [parent.frame()].
-#' @param ... `include` or `exclude`, given as [grep()] patterns.
+#' @param ... `include` or `exclude`, given as `character(1)` [grep()] patterns.
 #'   These are applied in the order given, so it is possible to
 #'   first include certain functions, then exclude a subset of these,
-#'   and then include a subset of these excluded functions etc.
+#'   and then include a subset of these excluded functions etc.\cr
+#'   This is usually not necessary to give, since `compileTypes` will
+#'   automatically ignore functions that do not have decorators, but helps
+#'   in cases where parameters have default values containing `:` or `|`
+#'   characters. This does *not* switch of type checks for the function, and
+#'   in fact may produce errors if a function containing type decorators is
+#'   not converted.
+#' @return `NULL`
 #' @examples
 #' ```
 #' # this function takes a parameter that is either a vector of two integer
@@ -58,6 +65,8 @@
 #'     data.frame[] [[named, all(sapply(a, nrow) > 2)]]) {
 #'   NULL
 #' }
+#'
+#' compileTypes()
 #' ```
 #' @export
 compileTypes = function(env = parent.frame(), ...) {
@@ -70,6 +79,12 @@ compileTypes = function(env = parent.frame(), ...) {
   invisible(NULL)
 }
 
+
+# Use the `include` and `exclude` parameters of `compileTypes` to get
+# the functions that should be affected.
+# @param env [environment] the environment to search
+# @param ... 'include' or 'exclude', character values.
+# @return [character] names of functions inside `env` to affect
 getAffectedFunctions = function(env, ...) {
   rules = list(...)
   allnames = Filter(function(n) is.function(get(n, env, inherits = FALSE)),
@@ -91,6 +106,10 @@ getAffectedFunctions = function(env, ...) {
   allnames[included]
 }
 
+# check whether `symbol` occurs in `expr`
+# @param expr [language] the expression to search
+# @param symbol [language] the symbol to search for
+# @return [logical(1)] whether `symbol` occurs in `expr`
 hassymbol = function(expr, symbol) {
   if (is.recursive(expr)) {
     any(vlapply(expr, hassymbol, symbol = symbol))
@@ -99,6 +118,10 @@ hassymbol = function(expr, symbol) {
   }
 }
 
+# Give a short character representation of `expr`
+# @param expr [language] the expression to deparse
+# @return [character(1)] representation of `expr` which cuts off after about 60
+#   characters.
 shortdeparse = function(expr) {
   dep = deparse(expr)
   if (length(dep) > 1) {
@@ -108,11 +131,20 @@ shortdeparse = function(expr) {
   }
 }
 
+# Give a complete character representation of `expr`
+# @param expr [language] the expression to deparse
+# @return [character(1)] representation of `expr` that contains the whole
+#   expression. This should still only be used for error output, and should
+#   not be parsed again.
 alldeparse = function(expr) {
   collapse(deparse(expr), sep = "\n")
 }
 
-
+# Remove the type decorators of a function and add the type checks in the body
+# @param fun [function] the function to change
+# @param name [character(1)] name of the function to use in error messages
+# @return [function] the function with removed type decorators and added type
+#   checks.
 compileFunction = function(fun, name) {
 
   insert = quote({})
@@ -124,8 +156,11 @@ compileFunction = function(fun, name) {
   dotsymbol = quote(.)
 
 
+  # iterate through the arguments
   for (idx in seq_along(formals.in)) {
     if (identical(formals.in[[idx]], substitute())) {
+      # this is necessary, since `substitute()` otherwise gives
+      # "argument missing" errors.
       next
     }
     curformal = formals.in[[idx]]
@@ -137,10 +172,12 @@ is malformed:", name, shortdeparse(formals.in[[idx]]))
     varname = names(formals(fun))[idx]
 
     while (is.recursive(curformal) && identical(curformal[[1]], pipesep)) {
+      # split conditions separated by `|`
       conditions = c(list(curformal[[3]]), conditions)
       curformal = curformal[[2]]
     }
     if (is.recursive(curformal) && identical(curformal[[1]], colonsep)) {
+      # split the `value : condition` part at the colon
       founddots = TRUE
       conditions = c(list(curformal[[3]]), conditions)
       curformal = curformal[[2]]
@@ -149,6 +186,14 @@ is malformed:", name, shortdeparse(formals.in[[idx]]))
       founddots = TRUE
     }
     if (!founddots && hassymbol(curformal, colonsep)) {
+      # it may be possible that a `:` is contained in the expression, but not
+      # at the top level of the expression, e.g.
+      #   1 + 2 : numeric
+      # which internally is represented as
+      #   1 + (2 : numeric)
+      # We could reorder the AST in some complicated way, but instead we just
+      # ask the user to set parentheses:
+      #  (1 + 2) : numeric
       stopf("%s
  Colon used inside default value is not at outermost level.
 Possibly use parentheses.",
@@ -164,25 +209,45 @@ Possibly use parentheses.",
       formals(fun)[[idx]] = curformal
     }
     if (!length(conditions)) {
+      # no type decorators
       next
     }
+
+    # compile the single conditions that are separated by `|`
     single.conds = lapply(conditions, singleConditionCheck,
       varname = varname, errprefix = errprefix)
+
+    # the conditions are chained together using `||`
     full.cond = Reduce(function(a, b) substitute(a || b, list(a = a, b = b)),
       extractSubList(single.conds, "fullexp"))
+
+    # the description of the condition, should it fail, that will be printed in
+    # the error message:
     full.string = sprintf("Argument '%s' must %s", varname,
       collapse(extractSubList(single.conds, "fullstring"),
         sep = sprintf("\n  or\n    '%s' must ", varname)))
+
+    # the whole check: `if (not condition) { error(description) }`
     full.check = substitute(if (!a) stop(b),
       list(a = full.cond, b = full.string))
+
     insert[[length(insert) + 1]] = full.check
   }
   if (!identical(insert, originsert)) {
+    # add the checks to the beginning of the function
     body(fun) = substitute({a ; b}, list(a = insert, b = body(fun)))
   }
   fun
 }
 
+# Create the Check for a Single Condition
+# @param condition [language] the type decorator, i.e. part behind the `:` ans
+#   separated by `|`
+# @param varname [character(1)] name of the variable under consideration
+# @param errprefix [character(1)] What to print before error messages, should
+#   type decorator be malformed.
+# @return [list(language, character(1))] list of the check to perform, and an
+#   error message to print if the check fails.
 singleConditionCheck = function(condition, varname, errprefix) {
   parsed = parseConditionCheck(condition, varname, errprefix)
   compiled = compileConditionCheck(parsed, varname)
@@ -194,18 +259,23 @@ singleConditionCheck = function(condition, varname, errprefix) {
   list(fullexp = fullexp, fullstring = fullstring)
 }
 
-
-# errprefix [character(1)]: what to write in error messages for malformed
-#   conditions
+# Parse single condition into intermediate representation
+# @param condition [language] the type decorator, i.e. part behind the `:` ans
+#   separated by `|`
+# @param varname [character(1)] name of the variable under consideration
+# @param errprefix [character(1)] What to print before error messages, should
+#   type decorator be malformed.
+# @return [list] list with intermediate facts about the condition, to be used
+#   by `compileConditionCheck()`.
 parseConditionCheck = function(condition, varname, errprefix) {
   fullcondition = condition
   varquote = asQuoted(varname)
 
-  abort = function(msg) {
+  abort = function(msg) {  # print message and abort
     stopf("%s\nCondition %s %s",
       errprefix, shortdeparse(fullcondition), msg)
   }
-  abortf = function(...) {
+  abortf = function(...) {  # abort + sprintf
     abort(sprintf(...))
   }
   abortIfNotNum = function(x) {
@@ -225,6 +295,12 @@ parseConditionCheck = function(condition, varname, errprefix) {
   extracons = list()
   values = NULL
   allow.na = FALSE
+
+  # first get the `[[ ... ]]` part
+  # Except the `unique` part (which is saved to `needs.unique`), all of them
+  # are of the form
+  #   list([condition to theck], [string to inform about the condition])
+  # and will be chained using `&&` by `singleConditionCheck`.
   if (is.recursive(condition) && identical(condition[[1]], quote(`[[`))) {
     # extra conditions
     extracons = lapply(seq(3, length(condition)), function(idx) {
@@ -249,7 +325,15 @@ parseConditionCheck = function(condition, varname, errprefix) {
     extracons = filterNull(extracons)
     condition = condition[[2]]
   }
+
+  # Now that the `[[ ]]` is removed, we save a string that informs the user
+  # about the format of the variable. This could e.g. be 'numeric(2)'.
   formatstring = alldeparse(condition)
+
+  # Handle the `[ ]` part of the condition. Nested lists are possible, so
+  # we loop until no more `[]` are present. The information about the list
+  # nesting depth and list lengths is saved in `list.depth`, `min.listlength`
+  # and `max.listlength`.
   while (is.recursive(condition) && identical(condition[[1]], quote(`[`))) {
     if (length(condition) > 4) {
       abort("brackets must have zero, one or two (possibly empty) arguments.")
@@ -274,6 +358,9 @@ parseConditionCheck = function(condition, varname, errprefix) {
     max.listlength %c=% maxl
     condition = condition[[2]]
   }
+
+  # Handle the `()` part, e.g. `integer(2)` or (the second paranetheses in)
+  # `value(1, 2, 3)(, 2)`.
   if (is.recursive(condition) && !identical(condition[[1]], quote(value))) {
     if (!(is.symbol(condition[[1]]) || is.null(condition[[1]])) &&
         (!is.recursive(condition[[1]]) ||
@@ -302,6 +389,8 @@ parseConditionCheck = function(condition, varname, errprefix) {
     }
     condition = condition[[1]]
   }
+
+  # Extract the possible values from `value(1, 2, 3)`.
   if (is.recursive(condition) && identical(condition[[1]], quote(value))) {
     values = as.list(condition)
     values[[1]] = NULL
@@ -312,7 +401,11 @@ parseConditionCheck = function(condition, varname, errprefix) {
 
     condition = condition[[1]]
   }
+
+  # Get the class / mode name
   if (is.null(condition)) {
+    # The class name `NULL` must be handled separately, because `quote(NULL)`
+    # does not produce a symbol "NULL".
     condition = "NULL"
   } else {
     if (!is.symbol(condition)) {
@@ -320,6 +413,8 @@ parseConditionCheck = function(condition, varname, errprefix) {
     }
     condition = as.character(condition)
   }
+
+  # Some modes allow `NA`s if the name is suffixed with `.na`.
   if (grepl("\\.na$", condition)) {
     precon = substr(condition, 1, nchar(condition) - 3)
     if (precon %in% c("logical", "integer", "numeric", "character", "list")) {
@@ -332,6 +427,8 @@ parseConditionCheck = function(condition, varname, errprefix) {
     }
   }
 
+  # Only the special mode classes can have vector lengths; Other classes should
+  # have list lengths (if at all).
   if (condition %nin%
       c("logical", "integer", "numeric", "character", "list", "value", "NULL") &&
     (!is.null(min.veclength) || !is.null(max.veclength))) {
@@ -355,14 +452,20 @@ parseConditionCheck = function(condition, varname, errprefix) {
     extracons = extracons)
 }
 
+# Use the intermediate representation created by `parseConditionCheck` to create
+# language expressions that check for the conditions.
+# @param parsed [list] the output of `parseConditionCheck`
+# @param varname [character(1)] name of the variable being handled
+# @return [language] an expression that checks that the condition is fulfilled.
 compileConditionCheck = function(parsed, varname) {
 
   minlen = parsed$min.veclength
   maxlen = parsed$max.veclength
 
+  # For classes that are not special modes / atomics, the innermost list length
+  # is treated as vector length.
   if (parsed$class %nin% c("logical", "integer", "numeric", "character", "list",
     "value", "NULL")) {
-    # treat listlength as veclength for non-atomics
     checkmate::assertNull(parsed$min.veclength)
     checkmate::assertNull(parsed$max.veclength)
     if (parsed$list.depth > 0) {
@@ -380,7 +483,15 @@ compileConditionCheck = function(parsed, varname) {
 
   testquote = NULL
 
+  # loop up the list.depth. Each level is checked in the form
+  #   checkmate::testList(varname, <requirements>) &&
+  #     all(sapply(varname, function(varname) { ... }))
+  # where the ... nest down to check the next list level. The innermost
+  # list level is checked according to the actual type and vector length
+  # given (e.g. `numeric(3)`).
   repeat {
+    # The innermost level is created first and then wrapped by the outer
+    # (list)checks.
     newquote = createCheckmateTest(parsed$class, varquote,
       needs.unique = parsed$list.depth == 0 && parsed$needs.unique,
       allow.na = parsed$allow.na,
@@ -397,6 +508,10 @@ compileConditionCheck = function(parsed, varname) {
     if (parsed$list.depth == 0) {
       break
     }
+
+    # to recurse up, treat any class as `list` now, and
+    # pop the next level of list length into the vector length
+    # variables.
     parsed$list.depth %-=% 1
 
     minlen = parsed$min.listlength[1]
@@ -411,6 +526,15 @@ compileConditionCheck = function(parsed, varname) {
   testquote
 }
 
+# Create a `checkmate::xxx` call according to given specifications.
+# @param class [character(1)] the class / mode name to check
+# @param varquote [symbol] the symbol representing the variable to check
+# @param needs.unique [logical(1)] whether to check uniqueness
+# @param allow.na [logical(1)] whether to allow missing values
+# @param minlen [numeric(1) | NULL] minimum length to allow
+# @param maxlen [numeric(1) | NULL] maximum length to allow
+# @return [language] an expression calling `checkmate::testXXX` and otherwise
+#   checking conformance of `varquote` to the requirements.
 createCheckmateTest = function(class, varquote, needs.unique, allow.na,
   minlen, maxlen, values) {
   addtype = FALSE

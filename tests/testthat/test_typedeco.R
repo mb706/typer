@@ -296,6 +296,9 @@ test_that("functions are compiled", {
     expect_null(a(NULL))
     expect_equal(a(iris), iris)
     expect_error(a(10), "data\\.frame")
+    expect_equal(b(), 10)
+    expect_equal(b(c("a", "b")), c("a", "b"))
+    expect_error(b(c("a", "a")), "unique")
   })()
 
 })
