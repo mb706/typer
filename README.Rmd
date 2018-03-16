@@ -1,7 +1,9 @@
 [![Build Status](https://travis-ci.org/mb706/typer.svg?branch=master)](https://travis-ci.org/mb706/typer)
 [![CRAN Status Badge](http://www.r-pkg.org/badges/version/typer)](https://CRAN.R-project.org/package=typer)
 [![CRAN Downloads](http://cranlogs.r-pkg.org/badges/typer)](https://cran.rstudio.com/web/packages/typer/index.html)
-
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
 
 # TypeR: Type Annotations for R
 
