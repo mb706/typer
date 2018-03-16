@@ -1,5 +1,5 @@
-mlr.Rcheck
-mlr_*.tar.gz
+typer.Rcheck
+typer_*.tar.gz
 .Rproj.user
 .Rhistory
 src/*.so
