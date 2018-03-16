@@ -12,12 +12,8 @@ LazyData: yes
 ByteCompile: yes
 Version: 0.0.1
 RoxygenNote: 6.0.1.9000
-VignetteBuilder: knitr
-Depends:
-    data.table,
-    BBmisc
 Imports:
-    checkmate
+    checkmate,
+    BBmisc
 Suggests:
-    testthat,
-    knitr
+    testthat
