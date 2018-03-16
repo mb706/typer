@@ -22,6 +22,9 @@ This function accepts one argument that may either be `NULL` or a numeric length
 library("typer")
 compfun = compileFunction(fun, name = "compfun")
 
+compfun()
+#> NULL
+
 compfun(1)
 #> [1] 1
 
