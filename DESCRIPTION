@@ -10,7 +10,7 @@ Encoding: UTF-8
 Roxygen: list(wrap = FALSE, markdown = TRUE)
 LazyData: yes
 ByteCompile: yes
-Version: 0.0.1
+Version: 0.1.0
 RoxygenNote: 6.0.1.9000
 Imports:
     checkmate,
