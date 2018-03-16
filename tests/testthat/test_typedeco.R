@@ -27,13 +27,13 @@ test_that("conditions are parsed properly", {
   expect_null(parsed$max.listlength)
   expect_null(parsed$min.veclength)
   expect_null(parsed$max.veclength)
-  expect_length(parsed$extracons, 2)
+  expect_length(parsed$extracons, 3)
   expect_length(parsed$extracons[[1]], 2)
   expect_length(parsed$extracons[[2]], 2)
   expect_identical(parsed$extracons[[1]][[1]], quote(isTRUE(x > 1)))
-  expect_identical(parsed$extracons[[2]][[1]], quote(checkmate::testNames(names(x))))
+  expect_identical(parsed$extracons[[3]][[1]], quote(checkmate::testNames(names(x))))
   expect_true(is.character(parsed$extracons[[1]][[2]]))
-  expect_true(is.character(parsed$extracons[[2]][[2]]))
+  expect_true(is.character(parsed$extracons[[3]][[2]]))
 
 
   expect_warning(parseConditionCheck(quote(Task.na), "x", "test"), "class name Task\\.na suffixed with \\.na does not")

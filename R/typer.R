@@ -1,8 +1,7 @@
+#' @import BBmisc
+#' @import checkmate
 
-
-
-
-#' Convert Argument Annotations to Argument Checks
+#' @title Convert Argument Annotations to Argument Checks
 #'
 #' A function annotation for a parameter has the form
 #' ```
@@ -57,7 +56,6 @@
 #'   not converted.
 #' @return `NULL`
 #' @examples
-#' ```
 #' # this function takes a parameter that is either a vector of two integer
 #' # numbers (either datatype integer or numeric), a vector of three numbers,
 #' # or a named list of data.frame that all have more than two rows.
@@ -67,7 +65,6 @@
 #' }
 #'
 #' compileTypes()
-#' ```
 #' @export
 compileTypes = function(env = parent.frame(), ...) {
   affected = getAffectedFunctions(env, ...)
