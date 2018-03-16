@@ -1,15 +1,16 @@
 
 #' @import BBmisc
+#' @import checkmate
 #' @import data.table
 
-#' @title The Package is Loaded
+#' @title Test title
 #'
 #' @export
 harbinger = TRUE
 
 #' Test Function
 #'
-#' This is the identity function.
+#' The identity function.
 #'
 #' @param x \[`any`]\cr
 #'   Anything, really.
