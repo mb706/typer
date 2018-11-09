@@ -11,7 +11,7 @@ Roxygen: list(wrap = FALSE, markdown = TRUE)
 LazyData: yes
 ByteCompile: yes
 Version: 0.1.0
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Imports:
     checkmate,
     BBmisc
