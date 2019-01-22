@@ -64,7 +64,9 @@ devtools::install_github("mb706/typer")
 `typer` is currently only a small tool which may or may not undergo future changes. Possibilities are, in order of decreasing likelihood:
 
 * Syntax refinement
-* Decoration of return values
+* Decoration of return values (possibly using dummy argument names `RETURNTYPE`)
+* Static / interactive switching between slow checking and fast not-checking mode
+* Grouping of functions between front-end (always checked) and back-end (only checked during debug), possibly using dummy argument `TYPERGROUP`
 * Recognizing more special classes / modes
 * Compatibility with the `types` package
 * Using a different backend than `checkmate`
